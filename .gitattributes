@@ -1,6 +1,11 @@
 best_aflatoxin_resnet50.keras filter=lfs diff=lfs merge=lfs -text
+*.docx filter=lfs diff=lfs merge=lfs -text
+*.pdf filter=lfs diff=lfs merge=lfs -text
 *.keras filter=lfs diff=lfs merge=lfs -text
 *.h5 filter=lfs diff=lfs merge=lfs -text
+*.pt filter=lfs diff=lfs merge=lfs -text
+*.onnx filter=lfs diff=lfs merge=lfs -text
 *.weights filter=lfs diff=lfs merge=lfs -text
+*.ckpt filter=lfs diff=lfs merge=lfs -text
 aflatoxin_resnet50_final.keras filter=lfs diff=lfs merge=lfs -text
 aflatoxin_resnet50_weights.weights.h5 filter=lfs diff=lfs merge=lfs -text
