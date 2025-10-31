@@ -11,6 +11,9 @@ call `append_run(...)` after completing training and evaluation so the run is re
 from __future__ import annotations
 
 import json
+import os
+import shutil
+from tempfile import NamedTemporaryFile
 from datetime import datetime
 from typing import Any, Dict, Optional
 
@@ -56,9 +59,19 @@ def append_run(params: Dict[str, Any], metrics: Dict[str, Any], history: Optiona
 
     safe_record = _safe_map(record)
 
+    # Write the JSON line and ensure it's flushed to disk immediately to reduce
+    # chance of partial writes or corruption (important if kernel/process dies).
+    # Keep writes minimal and atomic-ish by flushing and fsync'ing.
     with open(HISTORY_PATH, "a", encoding="utf-8") as f:
-        f.write(json.dumps(safe_record, ensure_ascii=False))
-        f.write("\n")
+        line = json.dumps(safe_record, ensure_ascii=False) + "\n"
+        f.write(line)
+        try:
+            f.flush()
+            os.fsync(f.fileno())
+        except Exception:
+            # On some platforms (or environments) fsync may fail; ignore to
+            # avoid breaking training flow but the flush above still helps.
+            pass
 
     # If auto-export configured, export to CSV every AUTO_EXPORT_N runs
     try:
@@ -90,6 +103,108 @@ def load_history() -> list:
     except FileNotFoundError:
         return []
     return records
+
+
+def audit_history_file() -> Dict[str, int]:
+    """Check the history file for malformed lines and return a brief report.
+
+    Returns a dict with counts: total_lines, valid_json, malformed_lines.
+    """
+    total = 0
+    valid = 0
+    malformed = 0
+    try:
+        with open(HISTORY_PATH, "r", encoding="utf-8") as f:
+            for line in f:
+                total += 1
+                s = line.strip()
+                if not s:
+                    continue
+                try:
+                    json.loads(s)
+                    valid += 1
+                except Exception:
+                    # try to salvage JSON payload if a prefix exists
+                    idx = s.find('{')
+                    if idx != -1:
+                        try:
+                            json.loads(s[idx:])
+                            valid += 1
+                            continue
+                        except Exception:
+                            pass
+                    malformed += 1
+    except FileNotFoundError:
+        return {"total_lines": 0, "valid_json": 0, "malformed_lines": 0}
+    return {"total_lines": total, "valid_json": valid, "malformed_lines": malformed}
+
+
+def repair_history(backup: bool = True) -> int:
+    """Attempt to repair `training_history.jsonl` by extracting valid JSON objects.
+
+    If `backup` is True, the original file is copied to `training_history.jsonl.bak`.
+    Returns the number of valid records written to the repaired file.
+    """
+    if not os.path.exists(HISTORY_PATH):
+        return 0
+
+    if backup:
+        bak_path = HISTORY_PATH + ".bak"
+        try:
+            shutil.copy2(HISTORY_PATH, bak_path)
+        except Exception:
+            # ignore backup errors but continue
+            pass
+
+    valid_records = []
+    with open(HISTORY_PATH, "r", encoding="utf-8") as f:
+        for line in f:
+            s = line.strip()
+            if not s:
+                continue
+            # Try direct parse
+            try:
+                obj = json.loads(s)
+                valid_records.append(obj)
+                continue
+            except Exception:
+                pass
+
+            # If line contains extra human-readable prefix, try to find first '{'
+            idx = s.find('{')
+            if idx != -1:
+                try:
+                    obj = json.loads(s[idx:])
+                    valid_records.append(obj)
+                    continue
+                except Exception:
+                    # If still fails, try to find further '{' occurrences (rare)
+                    for i in range(idx + 1, len(s)):
+                        if s[i] == '{':
+                            try:
+                                obj = json.loads(s[i:])
+                                valid_records.append(obj)
+                                break
+                            except Exception:
+                                continue
+                    # otherwise skip this line
+                    continue
+
+    # Write repaired file atomically
+    tmp = NamedTemporaryFile("w", delete=False, encoding="utf-8", dir=os.path.dirname(HISTORY_PATH) or '.')
+    try:
+        with tmp as f:
+            for r in valid_records:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+        os.replace(tmp.name, HISTORY_PATH)
+    finally:
+        if os.path.exists(tmp.name):
+            try:
+                os.remove(tmp.name)
+            except Exception:
+                pass
+
+    return len(valid_records)
 
 
 def get_last_run() -> Optional[Dict[str, Any]]:
