@@ -1,0 +1,23 @@
+{
+  "trial_id": 16,
+  "architecture": "256",
+  "params": {
+    "lrp1": 0.01,
+    "lrp2": 5e-05,
+    "layer_options": [
+      256
+    ],
+    "dropout_rate": 0.4,
+    "optimizer": "adam",
+    "epochs_p1": 40,
+    "epochs_p2": 60,
+    "fine_tune_at": 50
+  },
+  "test_accuracy": 0.280303031206131,
+  "test_loss": 8.32539176940918,
+  "f1_macro": 0.28080396614879377,
+  "val_acc_p1": 0.19847328960895538,
+  "val_acc_p2": 0.2748091518878937,
+  "epochs_ran_p1": 29,
+  "epochs_ran_p2": 31
+}
