@@ -1,0 +1,3 @@
+Timestamp,Model,Total_Params,Learning_Rate,Batch_Size,Img_Size,Use_Class_Weights,Accuracy,Avg_Confidence,Confusion_Matrix,C1_Prec,C1_Rec,C1_F1,C2_Prec,C2_Rec,C2_F1,C3_Prec,C3_Rec,C3_F1,C4_Prec,C4_Rec,C4_F1
+2026-04-08 17:03:37,Custom CNN (Dual-Pooling UV),130852,0.001,32,224,Yes,0.5481,0.6103,"[[15, 13, 2, 0], [7, 39, 6, 5], [2, 12, 11, 11], [0, 1, 2, 9]]",0.625,0.5,0.5556,0.6,0.6842,0.6393,0.5238,0.3056,0.386,0.36,0.75,0.4865
+2026-04-10 05:51:45,Custom CNN (Dual-Pooling UV),130852,0.0001,32,224,Yes,0.5547,0.5989,"[[23, 6, 1, 0], [16, 30, 10, 1], [2, 13, 11, 10], [0, 1, 1, 12]]",0.561,0.7667,0.6479,0.6,0.5263,0.5607,0.4783,0.3056,0.3729,0.5217,0.8571,0.6486
